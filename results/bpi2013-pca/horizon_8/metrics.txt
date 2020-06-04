@@ -1,0 +1,52 @@
+Horizon:8
+
+Category: organization country_us=0 organization involved_G199 3rd=0 
+  Ground Truth:1931333.0909
+  Mean for MAE:10837461.8340
+  Percentage from the full data: 72.280
+  Total cases:4814
+
+Category: organization country_us=1 organization involved_G199 3rd=0 
+  Ground Truth:2198796.0737
+  Mean for MAE:5783758.3149
+  Percentage from the full data: 10.240
+  Total cases:682
+
+Category: organization country_us=1 organization involved_G199 3rd=1 
+  Ground Truth:6626293.9583
+  Mean for MAE:20838310.6159
+  Percentage from the full data: 17.330
+  Total cases:1154
+
+Category: organization country_us=0 organization involved_G199 3rd=1 
+  Ground Truth:0.0000
+  Mean for MAE:0.0000
+  Percentage from the full data: 0.150
+  Total cases:10
+
+Computed Weighted arithmetic mean for MAE error:
+Total Ground Truth:2769461.0190
+Total MAE: 12036853.4948
+Total MAE in days: 139.3154
+ ------------------------ 
+
+Horizon:8
+
+Category: organization country_us=0 
+  Ground Truth:1931333.0909
+  Mean for MAE:10998515.3518
+  Percentage from the full data: 72.430
+  Total cases:4824
+
+Category: organization country_us=1 
+  Ground Truth:2179365.5401
+  Mean for MAE:17783216.3126
+  Percentage from the full data: 27.570
+  Total cases:1836
+
+Computed Weighted arithmetic mean for MAE error:
+Total Ground Truth:1999715.6371
+Total MAE: 12869057.4067
+Total MAE in days: 148.9474
+ ------------------------ 
+
