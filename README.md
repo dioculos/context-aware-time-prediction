@@ -1,4 +1,4 @@
-# context-aware-prediction
+# context-aware-time-prediction
 Source code for reference of the article "Context-Aware Completion Time Prediction for Business Process Monitoring" by Renato Alves, Luciana Babrieri, Kleber Stroeh. Sarajane Marque Perez and Edmundo Roberto Mauro Madeira. The code here presents the application of contextual information into process mining predictive task. This code can performe the following task:
 
 ATS: 
