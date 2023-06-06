@@ -8,12 +8,12 @@
 from __future__ import print_function, division
 from keras.models import Sequential, Model
 from keras.layers.core import Dense
-from keras.layers.recurrent import LSTM, GRU, SimpleRNN
-from keras.layers import Input
+from keras.layers import LSTM, GRU, SimpleRNN #Adequating layers
+from keras.layers import Input #Adequating layers
 from keras.utils.data_utils import get_file
 from keras.optimizers import Nadam
 from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
-from keras.layers.normalization import BatchNormalization
+from keras.layers import BatchNormalization #Adequating layers
 from collections import Counter
 import numpy as np
 import random
@@ -29,14 +29,15 @@ import traitlets
 from datetime import datetime
 from math import log
 import pandas as pd
-from ATLSTM_layer import ATLSTM_layer
+# from ATLSTM_layer import ATLSTM_layer
 
 
 # In[ ]:
 
 
 def load_data(eventlog, path, sep="|"):
-    return pd.read_csv('../../../dataset/'+path+'/%s' % eventlog, sep=sep, error_bad_lines=False).values
+    # return pd.read_csv('../../datasets/'+path+'/%s' % eventlog, sep=sep).values
+    return pd.read_csv(os.path.join(os.path.dirname(__file__),'../../datasets/'+path+'/%s') % eventlog, sep=sep).values
 
 
 # # In[ ]:
@@ -83,7 +84,7 @@ def main(argv = None):
     num_add_feats = 0
     
     try:
-        opts, args = getopt.getopt(argv, "hi:d:n:")
+        opts, args = getopt.getopt(argv, "hi:d:s:n:")
     except getopt.GetoptError:
         print(os.path.basename(__file__),
               "-i <input_file> -d <directory> -s <separator> -n <num_add_feats>")
@@ -104,8 +105,7 @@ def main(argv = None):
             num_add_feats = int(arg)
     
     begin_time = datetime.now()
-    
-    
+     
     #helper variables
     lines = [] #these are all the activity seq
 #     timeseqs = [] #time sequences (differences between two events)
@@ -190,7 +190,7 @@ def main(argv = None):
     fold1_t3 = timeseqs3[:elems_per_fold]
     fold1_t4 = timeseqs4[:elems_per_fold]
     fold1_ft = add_feats[:elems_per_fold]
-    with open('../../../results/output_files/folds/fold1.csv', 'w') as csvfile:
+    with open(os.path.join(os.path.dirname(__file__),'../../results/output_files/folds/fold1.csv'), 'w') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for row, timeseq in zip(fold1, fold1_t):
             spamwriter.writerow([s +'#{}'.format(t) for s, t in zip(row, timeseq)])
@@ -201,7 +201,7 @@ def main(argv = None):
     fold2_t3 = timeseqs3[elems_per_fold:2*elems_per_fold]
     fold2_t4 = timeseqs4[elems_per_fold:2*elems_per_fold]
     fold2_ft = add_feats[elems_per_fold:2*elems_per_fold]
-    with open('../../../results/output_files/folds/fold2.csv', 'w') as csvfile:
+    with open(os.path.join(os.path.dirname(__file__),'../../results/output_files/folds/fold2.csv'), 'w') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for row, timeseq in zip(fold2, fold2_t):
             spamwriter.writerow([s +'#{}'.format(t) for s, t in zip(row, timeseq)])
@@ -212,7 +212,7 @@ def main(argv = None):
     fold3_t3 = timeseqs3[2*elems_per_fold:]
     fold3_t4 = timeseqs4[2*elems_per_fold:]
     fold3_ft = add_feats[2*elems_per_fold:]
-    with open('../../../results/output_files/folds/fold3.csv', 'w') as csvfile:
+    with open(os.path.join(os.path.dirname(__file__),'../../results/output_files/folds/fold3.csv'), 'w') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for row, timeseq in zip(fold3, fold3_t):
             spamwriter.writerow([s +'#{}'.format(t) for s, t in zip(row, timeseq)])
@@ -327,19 +327,28 @@ def main(argv = None):
     print(X.shape)
     
     main_input = Input(shape=(maxlen, num_features), name='main_input')
+    # old code for use with Attention Gate LSTM's
+    # l1 = ATLSTM_layer(128, return_sequences=True)(main_input) # the shared layer
+
+    # l2_1 = ATLSTM_layer(128, return_sequences=False)(l1)
+
+    # l2_2 = ATLSTM_layer(128, return_sequences=False)(l1)
+
+    # d1 = keras.layers.Dropout(.2)(l1)
+    # d2_1 = keras.layers.Dropout(.2)(l2_1)
+    # d2_2 = keras.layers.Dropout(.2)(l2_2)
+
     # train a 2-layer LSTM with one shared layer
-    l1 = ATLSTM_layer(128, return_sequences=True)(main_input) # the shared layer
 
-    l2_1 = ATLSTM_layer(128, return_sequences=False)(l1)
+    l1 = LSTM(128, implementation=2, kernel_initializer='glorot_uniform', return_sequences=True, dropout=0.2)(main_input) # the shared layer
+    b1 = BatchNormalization()(l1)
+    l2_1 = LSTM(128, implementation=2, kernel_initializer='glorot_uniform', return_sequences=False, dropout=0.2)(b1) # the layer specialized in activity prediction
+    b2_1 = BatchNormalization()(l2_1)
+    l2_2 = LSTM(128, implementation=2, kernel_initializer='glorot_uniform', return_sequences=False, dropout=0.2)(b1) # the layer specialized in time prediction
+    b2_2 = BatchNormalization()(l2_2)
 
-    l2_2 = ATLSTM_layer(128, return_sequences=False)(l1)
-
-    d1 = keras.layers.Dropout(.2)(l1)
-    d2_1 = keras.layers.Dropout(.2)(l2_1)
-    d2_2 = keras.layers.Dropout(.2)(l2_2)
-
-    act_output = Dense(len(target_chars), activation='softmax', kernel_initializer='glorot_uniform', name='act_output')(d2_1)
-    time_output = Dense(1, kernel_initializer='glorot_uniform', name='time_output')(d2_2)
+    act_output = Dense(len(target_chars), activation='softmax', kernel_initializer='glorot_uniform', name='act_output')(b2_1)
+    time_output = Dense(1, kernel_initializer='glorot_uniform', name='time_output')(b2_2)
     
     model = Model(inputs=[main_input], outputs=[act_output, time_output])
     
@@ -347,7 +356,7 @@ def main(argv = None):
     if num_add_feats == 0:
         model_folder = create_model_folder("model_nofeat",directory)
     else:
-        model_folder = create_model_folder("model_"+num_add_feats+"_feat", directory)
+        model_folder = create_model_folder("model_"+str(num_add_feats)+"_feat", directory)
     
     opt = Nadam(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, schedule_decay=0.004, clipvalue=3)
     

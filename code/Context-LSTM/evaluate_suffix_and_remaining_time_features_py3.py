@@ -31,7 +31,7 @@ begin_time = datetime.now()
 
 def load_data(eventlog, path):
     #return pd.read_csv('../../../work/renato.alves/datasets/'+path+'/%s' % eventlog, sep="|", error_bad_lines=False).values
-    return pd.read_csv('../../dataset/'+path+'/%s' % eventlog, sep=",", error_bad_lines=False).values
+    return pd.read_csv('../../datasets/'+path+'/%s' % eventlog, sep=",").values
 
 
 # In[ ]:
