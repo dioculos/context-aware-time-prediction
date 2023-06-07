@@ -49,18 +49,22 @@ def get_divisor(timeseqs):
 def create_model_folder(name, dirc):
     i = 1
     
-    path_dir = "../../../results/output_files/models/"+dirc
+    #path_dir = os.path.join(os.path.dirname(__file__),'../../results/output_files/models/'+dirc)
+    cwd = os.getcwd()
+    path_dir = cwd+'/results/output_files/models/'+dirc
     if os.path.isdir(path_dir) == False:
         try:
             os.mkdir(path_dir)
-        except OSError:
+        except OSError as osx:
             print ("Creation of the directory %s failed" % path_dir)
+            print (osx)
         else:
             print ("Successfully created the directory %s " % path_dir)
     
     for i in range(100):
         new_name = name + "_v" + str(i)
         path_name = path_dir + "/" + new_name
+        print(path_name) 
         if os.path.isdir(path_name) == False:
             try:
                 os.mkdir(path_name)
@@ -69,7 +73,7 @@ def create_model_folder(name, dirc):
             else:
                 print ("Successfully created the directory %s " % path_name)
                 break
-                
+    print(new_name)            
     return new_name
 # In[ ]:
 
@@ -364,9 +368,11 @@ def main(argv = None):
     
     early_stopping = EarlyStopping(monitor='val_loss', patience=42)
     
-    model_checkpoint = ModelCheckpoint("../../../results/output_files/models/"+directory+"/"+model_folder+'/model_{epoch:02d}-{val_loss:.2f}.h5',
+    checkpoint_path = os.getcwd() + "/results/output_files/models/"+directory+"/"+model_folder+'/model_{epoch:02d}-{val_loss:.2f}.h5'
+
+    model_checkpoint = ModelCheckpoint(checkpoint_path,
                                    monitor='val_loss',
-                                   verbose=0,
+                                   verbose=1,
                                    save_best_only=True,
                                    save_weights_only=False,
                                    mode='auto')
