@@ -1,10 +1,5 @@
-Necessary libs (install with python3 -m pip install [library]):
+How to run:
 
-- keras
-- tensorflow
-- distance
-- pandas
-- jellyfish
-- scikit-learn
-- matplotlib
-- ipywidgets
+Train your input model:
+
+python .\code\Context-LSTM\train_addittional_feats_py3.py -i <input_file> -d <directory> -s <separator> -n <num_add_feats>
