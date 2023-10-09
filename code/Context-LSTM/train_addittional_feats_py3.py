@@ -34,6 +34,7 @@ import pandas as pd
 
 # In[ ]:
 
+## Load CSV file into a returned numpy array, specifying the eventlog file and the path it is stored, also the separator used
 
 def load_data(eventlog, path, sep="|"):
     # return pd.read_csv('../../datasets/'+path+'/%s' % eventlog, sep=sep).values
@@ -42,9 +43,12 @@ def load_data(eventlog, path, sep="|"):
 
 # # In[ ]:
 
+## Utility function to get the mean of timesequences
 
 def get_divisor(timeseqs):
     return np.mean([item for sublist in timeseqs for item in sublist])
+
+## Utility function, creates a folder to store models in
 
 def create_model_folder(name, dirc):
     i = 1
@@ -77,16 +81,20 @@ def create_model_folder(name, dirc):
     return new_name
 # In[ ]:
 
+## Program start
 
 def main(argv = None):
     if argv is None:
         argv = sys.argv
 
+    ## Initialize vars that'll recieve the params
     inputfile = ""
     directory = ""
     sep=""
     num_add_feats = 0
     
+    ## Extracts params from input and stores them in the vars
+
     try:
         opts, args = getopt.getopt(argv, "hi:d:s:n:")
     except getopt.GetoptError:
@@ -108,6 +116,8 @@ def main(argv = None):
         elif opt == "-n":
             num_add_feats = int(arg)
     
+    ## Simple time tracking
+
     begin_time = datetime.now()
      
     #helper variables
@@ -131,34 +141,36 @@ def main(argv = None):
     numlines = 0
     casestarttime = None
     lasteventtime = None
-        
+
+    ## Offset to start the encoding with    
     ascii_offset = 161
 
+    #Loads spamreader as a pandas dataframe
     spamreader = load_data(inputfile, directory, sep)
-    
+
     for row in spamreader:
-        t = time.strptime(row[2], "%Y-%m-%d %H:%M:%S")
-        if row[0]!=lastcase:
-            casestarttime = t
+        t = time.strptime(row[2], "%Y-%m-%d %H:%M:%S") ## Parses timestamp included on the file
+        if row[0]!=lastcase: ## If the caseID is not the lastcase, means we're starting a new case
+            casestarttime = t ## Marks the start of a case's time
             lasteventtime = t
-            lastcase = row[0]
-            if not firstLine:
-                lines.append(line)
+            lastcase = row[0] ## Marks up the current case we're looking
+            if not firstLine: ## Trigger to skip the first line
+                lines.append(line) 
                 timeseqs.append(times)
                 timeseqs2.append(times2)
                 timeseqs3.append(times3)
                 timeseqs4.append(times4)
                 add_feats.append(list(add_feat))
-            line = ''
+            line = '' ##Cleans the variables
             times = []
             times2 = []
             times3 = []
             times4 = []
-            add_feat = row[3:]
+            add_feat = row[3:] ## Stores all additional features
             # add_feat = int(row[3])
             numlines+=1
-        line+=chr(int(row[1])+ascii_offset)
-        timesincelastevent = datetime.fromtimestamp(time.mktime(t))-datetime.fromtimestamp(time.mktime(lasteventtime))
+        line+=chr(int(row[1])+ascii_offset) ##Generates a Symbol based on activity ID on original bpic.csv example, encoding an activity sequence
+        timesincelastevent = datetime.fromtimestamp(time.mktime(t))-datetime.fromtimestamp(time.mktime(lasteventtime)) ##Time markers
         timesincecasestart = datetime.fromtimestamp(time.mktime(t))-datetime.fromtimestamp(time.mktime(casestarttime))
         midnight = datetime.fromtimestamp(time.mktime(t)).replace(hour=0, minute=0, second=0, microsecond=0)
         timesincemidnight = datetime.fromtimestamp(time.mktime(t))-midnight
@@ -173,7 +185,7 @@ def main(argv = None):
         # add_feats.append(add_feat)
         lasteventtime = t
         firstLine = False
-
+## Appending last line information
     lines.append(line)
     timeseqs.append(times)
     timeseqs2.append(times2)
@@ -186,6 +198,12 @@ def main(argv = None):
     print('divisor: {}'.format(divisor))
     divisor2 = get_divisor(timeseqs2) #average time between current and first events
     print('divisor2: {}'.format(divisor2))
+
+    ## Dividing all the structures into folds, a fold for the activity sequences and other folds for each of the time diffs
+    ## Each of the lines (activity sequences) and the timestamp is joined into a tuple contaning (lines, timestamp) and iterated
+    ## For each of those tuples, the sequence along with the timestamp is
+    ## Also, the folds are saved onto a file, with the following formatting:
+    ## [activity#timestamp], [activity#timestamp], ...
 
     elems_per_fold = int(round(numlines/3))
     fold1 = lines[:elems_per_fold]
@@ -220,6 +238,8 @@ def main(argv = None):
         spamwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for row, timeseq in zip(fold3, fold3_t):
             spamwriter.writerow([s +'#{}'.format(t) for s, t in zip(row, timeseq)])
+
+## Joining the first and second folds;
 
     lines = fold1 + fold2
     lines_t = fold1_t + fold2_t
@@ -329,6 +349,10 @@ def main(argv = None):
     # build the model: 
     print('Build model...')
     print(X.shape)
+
+    #print ("Printing X")
+    #print (X)
+
     
     main_input = Input(shape=(maxlen, num_features), name='main_input')
     # old code for use with Attention Gate LSTM's
@@ -384,10 +408,12 @@ def main(argv = None):
           verbose=2,
           callbacks=[early_stopping, model_checkpoint, lr_reducer],
           batch_size=maxlen,
-          epochs=200
+          epochs=5 #change it back to 200
           )
     
     print(datetime.now() - begin_time)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+
+# %%

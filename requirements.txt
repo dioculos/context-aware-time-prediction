@@ -6,3 +6,6 @@ distance==0.1.3
 jellyfish==0.11.2
 scikit_learn==1.2.2
 matplotlib==3.7.1
+lime==0.2.0.1
+shap==0.41.0
+timeshap==1.0.3
