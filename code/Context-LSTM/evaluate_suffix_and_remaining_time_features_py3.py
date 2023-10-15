@@ -26,7 +26,7 @@ import pandas as pd
 #Begin explanations
 
 import timeshap
-from timeshap.utils import calc_avg_event
+from timeshap.utils import *
     
 ## Utilitary functions
 
@@ -227,6 +227,8 @@ def main(argv = None):
     add_feats.append(add_feat)
     numlines+=1
     
+    print ('numlines: {}'.format(numlines))
+
 ## Calculations for the enhanced time statistics
 
     divisor = get_divisor(timeseqs) #average time between events
@@ -284,6 +286,33 @@ def main(argv = None):
     target_indices_char = dict((i, c) for i, c in enumerate(target_chars))
     print(indices_char)
 
+    
+
+    ## determine our desired sequence length
+    desired_length = maxlen
+
+    # Find the maximum length of sequences
+    max_seq_length = max(len(seq) for seq in lines)
+
+    print (max_seq_length)
+
+    # Pad the sequences to the maximum length on the left
+    padded_lines = [seq.rjust(max_seq_length, '¥') for seq in lines]
+    padded_lines_t = [[0] * (desired_length - len(seq)) + seq for seq in lines_t]
+    padded_lines_t2 = [[0] * (desired_length - len(seq)) + seq for seq in lines_t2]
+
+    # Create a Pandas DataFrame
+    timeshap_data = {
+        'CaseID': caseids,
+        'Sequence': padded_lines,
+        'TimeSinceLastEvent': padded_lines_t,
+        'TimeSinceCaseStart': padded_lines_t2
+    }
+
+    timeshap_df = pd.DataFrame(timeshap_data)
+
+
+
     ## 33% of the dataset being used here
 
     lines = fold3
@@ -339,8 +368,22 @@ def main(argv = None):
                 for i in range(predict_size):
                     enc = encode(cropped_line, cropped_times, cropped_times3, ft, maxlen, num_add_feats, chars, char_indices, divisor, divisor2)
                     y = model.predict(enc, verbose=0) # make predictions
+                    
                     ## Insert TimeShap
-                    ##average_event = calc_avg_event(, numerical_feats=raw_model_features, categorical_feats=[])
+
+                    ## Validate the input on timeshap
+                    padded_data = pd.read_csv(os.getcwd()+"\padded_event_log.csv", sep="|")
+                    ids_for_test = np.random.choice(padded_data['CaseID'].unique(), size = 24, replace=False)
+                    d_train = padded_data[~padded_data['CaseID'].isin(ids_for_test)]
+                    d_train['CompleteTimestamp'] = pd.to_datetime(d_train['CompleteTimestamp'])
+                    d_train['CompleteTimestamp'] = d_train['CompleteTimestamp'].apply(lambda x: int(x.timestamp()))
+                    average_event = calc_avg_event(d_train, numerical_feats=['CompleteTimestamp'], categorical_feats=[])
+                    print (average_event)
+                    average_sequence = calc_avg_sequence(d_train, numerical_feats=['CompleteTimestamp'], categorical_feats=[], model_features=['CaseID','ActivityID','CompleteTimestamp'], entity_col=['CaseID'])
+                    print (average_sequence)
+                    avg_score_over_len = get_avg_score_with_avg_event(d_train, average_event, top=480)
+                    return
+                    #print(average_event)
                     # split predictions into seperate activity and time predictions
                     y_char = y[0][0] 
                     y_t = y[1][0][0]
@@ -378,6 +421,7 @@ def main(argv = None):
                     spamwriter.writerow(output)
 
     print(datetime.now() - begin_time)
+
 
 
 
