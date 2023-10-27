@@ -131,7 +131,9 @@ def main(argv = None):
     timeseqs = []
     timeseqs2 = []
     timeseqs3 = []
-    timeseqs4 = []
+
+    # timeseqs4 = [] 
+    
     add_feats = []
     times = []
     times2 = []
@@ -159,15 +161,21 @@ def main(argv = None):
                 timeseqs.append(times)
                 timeseqs2.append(times2)
                 timeseqs3.append(times3)
-                timeseqs4.append(times4)
-                add_feats.append(list(add_feat))
+
+                # timeseqs4.append(times4)
+
+                if(num_add_feats > 0):
+                    add_feats.append(list(add_feat))
             line = '' ##Cleans the variables
             times = []
             times2 = []
             times3 = []
-            times4 = []
-            add_feat = row[3:] ## Stores all additional features
-            # add_feat = int(row[3])
+
+            # times4 = []
+
+            if(num_add_feats > 0):
+                add_feat = row[3:] ## Stores all additional features
+                # add_feat = int(row[3])
             numlines+=1
         line+=chr(int(row[1])+ascii_offset) ##Generates a Symbol based on activity ID on original bpic.csv example, encoding an activity sequence
         timesincelastevent = datetime.fromtimestamp(time.mktime(t))-datetime.fromtimestamp(time.mktime(lasteventtime)) ##Time markers
@@ -177,11 +185,15 @@ def main(argv = None):
         timediff = 86400 * timesincelastevent.days + timesincelastevent.seconds
         timediff2 = 86400 * timesincecasestart.days + timesincecasestart.seconds
         timediff3 = timesincemidnight.seconds #this leaves only time even occured after midnight
-        timediff4 = datetime.fromtimestamp(time.mktime(t)).weekday() #day of the week
+
+        # timediff4 = datetime.fromtimestamp(time.mktime(t)).weekday() #day of the week
+
         times.append(timediff)
         times2.append(timediff2)
         times3.append(timediff3)
-        times4.append(timediff4)
+
+        # times4.append(timediff4)
+
         # add_feats.append(add_feat)
         lasteventtime = t
         firstLine = False
@@ -190,9 +202,14 @@ def main(argv = None):
     timeseqs.append(times)
     timeseqs2.append(times2)
     timeseqs3.append(times3)
-    timeseqs4.append(times4)
-    add_feats.append(add_feat)
+    # timeseqs4.append(times4)
+
+    if(num_add_feats > 0):
+        add_feats.append(add_feat)
+
     numlines+=1
+
+    print ('numlines: {}'.format(numlines))
 
     divisor = get_divisor(timeseqs) #average time between events
     print('divisor: {}'.format(divisor))
@@ -210,8 +227,12 @@ def main(argv = None):
     fold1_t = timeseqs[:elems_per_fold]
     fold1_t2 = timeseqs2[:elems_per_fold]
     fold1_t3 = timeseqs3[:elems_per_fold]
-    fold1_t4 = timeseqs4[:elems_per_fold]
-    fold1_ft = add_feats[:elems_per_fold]
+
+    # fold1_t4 = timeseqs4[:elems_per_fold]
+    
+    if(num_add_feats > 0):
+        fold1_ft = add_feats[:elems_per_fold]
+
     with open(os.path.join(os.path.dirname(__file__),'../../results/output_files/folds/fold1.csv'), 'w') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for row, timeseq in zip(fold1, fold1_t):
@@ -221,8 +242,12 @@ def main(argv = None):
     fold2_t = timeseqs[elems_per_fold:2*elems_per_fold]
     fold2_t2 = timeseqs2[elems_per_fold:2*elems_per_fold]
     fold2_t3 = timeseqs3[elems_per_fold:2*elems_per_fold]
-    fold2_t4 = timeseqs4[elems_per_fold:2*elems_per_fold]
-    fold2_ft = add_feats[elems_per_fold:2*elems_per_fold]
+
+    # fold2_t4 = timeseqs4[elems_per_fold:2*elems_per_fold]
+
+    if(num_add_feats > 0):
+        fold2_ft = add_feats[elems_per_fold:2*elems_per_fold]
+
     with open(os.path.join(os.path.dirname(__file__),'../../results/output_files/folds/fold2.csv'), 'w') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for row, timeseq in zip(fold2, fold2_t):
@@ -232,8 +257,11 @@ def main(argv = None):
     fold3_t = timeseqs[2*elems_per_fold:]
     fold3_t2 = timeseqs2[2*elems_per_fold:]
     fold3_t3 = timeseqs3[2*elems_per_fold:]
-    fold3_t4 = timeseqs4[2*elems_per_fold:]
-    fold3_ft = add_feats[2*elems_per_fold:]
+
+    # fold3_t4 = timeseqs4[2*elems_per_fold:]
+    if(num_add_feats > 0):
+        fold3_ft = add_feats[2*elems_per_fold:]
+
     with open(os.path.join(os.path.dirname(__file__),'../../results/output_files/folds/fold3.csv'), 'w') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for row, timeseq in zip(fold3, fold3_t):
@@ -245,8 +273,11 @@ def main(argv = None):
     lines_t = fold1_t + fold2_t
     lines_t2 = fold1_t2 + fold2_t2
     lines_t3 = fold1_t3 + fold2_t3
-    lines_t4 = fold1_t4 + fold2_t4
-    lines_ft = fold1_ft + fold2_ft
+
+    # lines_t4 = fold1_t4 + fold2_t4
+
+    if(num_add_feats > 0):
+        lines_ft = fold1_ft + fold2_ft
 
     step = 1
     sentences = []
@@ -271,14 +302,23 @@ def main(argv = None):
     sentences_t = []
     sentences_t2 = []
     sentences_t3 = []
-    sentences_t4 = []
-    sentences_ft = []
+
+    # sentences_t4 = []
+
+    if(num_add_feats > 0):
+        sentences_ft = []
+
     next_chars_t = []
     next_chars_t2 = []
     next_chars_t3 = []
-    next_chars_t4 = []
-    next_chars_ft = []
-    for line, line_t, line_t2, line_t3, line_t4, line_ft in zip(lines, lines_t, lines_t2, lines_t3, lines_t4, lines_ft):
+
+    # next_chars_t4 = []
+
+    if(num_add_feats > 0):
+        next_chars_ft = []
+
+    # for line, line_t, line_t2, line_t3, line_t4, line_ft in zip(lines, lines_t, lines_t2, lines_t3, lines_t4, lines_ft):
+    for line, line_t, line_t2, line_t3, in zip(lines, lines_t, lines_t2, lines_t3):
         for i in range(0, len(line), step):
             if i==0:
                 continue
@@ -289,24 +329,36 @@ def main(argv = None):
             sentences_t.append(line_t[0:i])
             sentences_t2.append(line_t2[0:i])
             sentences_t3.append(line_t3[0:i])
-            sentences_t4.append(line_t4[0:i])
-            sentences_ft.append(line_ft)
+
+            # sentences_t4.append(line_t4[0:i])
+            # sentences_ft.append(line_ft)
+
             next_chars.append(line[i])
             if i==len(line)-1: # special case to deal time of end character
                 next_chars_t.append(0)
                 next_chars_t2.append(0)
                 next_chars_t3.append(0)
-                next_chars_t4.append(0)
+                # next_chars_t4.append(0)
             else:
                 next_chars_t.append(line_t[i])
                 next_chars_t2.append(line_t2[i])
                 next_chars_t3.append(line_t3[i])
-                next_chars_t4.append(line_t4[i])
-            next_chars_ft.append(line_ft)
+                # next_chars_t4.append(line_t4[i])
+            # next_chars_ft.append(line_ft)
     print('nb sequences:', len(sentences))
 
     print('Vectorization...')
-    num_features = len(chars)+5+num_add_feats+1
+    num_features=0
+
+    ## Below we have the number of features being [number_of_activities] + 4 because we have the one hot encoding of the number of activities,
+    ## Thus making each of the activities into a feature. Then, there is the three time-related features (t, t2, t3), and finally
+    ## There is an index for the activity in a sequence (first, second, third, etc. activity of the case)
+    ## If we readd the t4 time-related feature, we should bump the number to 5
+
+    if(num_add_feats == 0):
+        num_features = len(chars)+4
+    else:
+        num_features = len(chars)+4+num_add_feats+1
     print('num features: {}'.format(num_features))
     X = np.zeros((len(sentences), maxlen, num_features), dtype=np.float32)
     y_a = np.zeros((len(sentences), len(target_chars)), dtype=np.float32)
@@ -317,7 +369,7 @@ def main(argv = None):
         sentence_t = sentences_t[i]
         sentence_t2 = sentences_t2[i]
         sentence_t3 = sentences_t3[i]
-        sentence_t4 = sentences_t4[i]
+        # sentence_t4 = sentences_t4[i]
         # sentence_ft = sentences_ft[i][0]
         # sentence_ft2 = sentences_ft[i][1]
         # sentence_ft3 = sentences_ft[i][2]
@@ -330,7 +382,7 @@ def main(argv = None):
             X[i, t+leftpad, len(chars)+1] = sentence_t[t]/divisor
             X[i, t+leftpad, len(chars)+2] = sentence_t2[t]/divisor2
             X[i, t+leftpad, len(chars)+3] = sentence_t3[t]/86400
-            X[i, t+leftpad, len(chars)+4] = sentence_t4[t]/7
+            # X[i, t+leftpad, len(chars)+4] = sentence_t4[t]/7
             # X[i, t+leftpad, len(chars)+5] = next_chars_t[t]
             if num_add_feats > 0:
                 for f in range(num_add_feats):

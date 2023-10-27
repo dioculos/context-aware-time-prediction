@@ -27,6 +27,8 @@ import pandas as pd
 
 import timeshap
 from timeshap.utils import *
+from timeshap.explainer import *
+from timeshap.plot import *
     
 ## Utilitary functions
 
@@ -82,7 +84,10 @@ def create_result_folder(name, dirc):
 
 
 def encode(sentence, times, times3, feat, maxlen, num_add_feats, chars, char_indices, divisor, divisor2):
-    num_features = len(chars)+5+num_add_feats+1
+    if(num_add_feats > 0):
+        num_features = len(chars)+4+num_add_feats+1
+    else:
+        num_features = len(chars)+4
     X = np.zeros((1, maxlen, num_features), dtype=np.float32)
     leftpad = maxlen-len(sentence)
     times2 = np.cumsum(times)
@@ -97,7 +102,7 @@ def encode(sentence, times, times3, feat, maxlen, num_add_feats, chars, char_ind
         X[0, t+leftpad, len(chars)+1] = times[t]/divisor
         X[0, t+leftpad, len(chars)+2] = times2[t]/divisor2
         X[0, t+leftpad, len(chars)+3] = timesincemidnight.seconds/86400
-        X[0, t+leftpad, len(chars)+4] = times3[t].weekday()/7
+        # X[0, t+leftpad, len(chars)+4] = times3[t].weekday()/7
         if num_add_feats > 0:
             for f in range(num_add_feats):
                 X[0, t+leftpad, len(chars)+f+5] = feat[f]
@@ -197,7 +202,7 @@ def main(argv = None):
                 timeseqs.append(times)
                 timeseqs2.append(times2)
                 timeseqs3.append(times3)
-                add_feats.append(list(add_feat))
+                # add_feats.append(list(add_feat))
             line = ''
             times = []
             times2 = []
@@ -224,7 +229,7 @@ def main(argv = None):
     timeseqs.append(times)
     timeseqs2.append(times2)
     timeseqs3.append(times3)
-    add_feats.append(add_feat)
+    #add_feats.append(add_feat)
     numlines+=1
     
     print ('numlines: {}'.format(numlines))
@@ -244,11 +249,13 @@ def main(argv = None):
     fold1_c = caseids[:elems_per_fold]
     fold1_t = timeseqs[:elems_per_fold]
     fold1_t2 = timeseqs2[:elems_per_fold]
+    fold1_t3 = timeseqs3[:elems_per_fold]
 
     fold2 = lines[elems_per_fold:2*elems_per_fold]
     fold2_c = caseids[elems_per_fold:2*elems_per_fold]
     fold2_t = timeseqs[elems_per_fold:2*elems_per_fold]
     fold2_t2 = timeseqs2[elems_per_fold:2*elems_per_fold]
+    fold2_t3 = timeseqs3[elems_per_fold:2*elems_per_fold]
     
     #%%
     fold3 = lines[2*elems_per_fold:]
@@ -256,7 +263,7 @@ def main(argv = None):
     fold3_t = timeseqs[2*elems_per_fold:]
     fold3_t2 = timeseqs2[2*elems_per_fold:]
     fold3_t3 = timeseqs3[2*elems_per_fold:]
-    fold3_ft = add_feats[2*elems_per_fold:]
+    #fold3_ft = add_feats[2*elems_per_fold:]
 
     ## 66% of the dataset being used here
 
@@ -264,6 +271,13 @@ def main(argv = None):
     caseids = fold1_c + fold2_c
     lines_t = fold1_t + fold2_t
     lines_t2 = fold1_t2 + fold2_t2
+    lines_t3 = fold1_t3 + fold2_t3
+
+    d_train_lines = lines;
+    d_train_caseids = caseids;
+    d_train_lines_t = lines_t;
+    d_train_lines_t2 = lines_t2;
+    d_train_lines_t3 = lines_t3;
 
     ## Reformatting the activity representation
     
@@ -288,39 +302,15 @@ def main(argv = None):
 
     
 
-    ## determine our desired sequence length
-    desired_length = maxlen
-
-    # Find the maximum length of sequences
-    max_seq_length = max(len(seq) for seq in lines)
-
-    print (max_seq_length)
-
-    # Pad the sequences to the maximum length on the left
-    padded_lines = [seq.rjust(max_seq_length, '¥') for seq in lines]
-    padded_lines_t = [[0] * (desired_length - len(seq)) + seq for seq in lines_t]
-    padded_lines_t2 = [[0] * (desired_length - len(seq)) + seq for seq in lines_t2]
-
-    # Create a Pandas DataFrame
-    timeshap_data = {
-        'CaseID': caseids,
-        'Sequence': padded_lines,
-        'TimeSinceLastEvent': padded_lines_t,
-        'TimeSinceCaseStart': padded_lines_t2
-    }
-
-    timeshap_df = pd.DataFrame(timeshap_data)
-
-
-
     ## 33% of the dataset being used here
 
     lines = fold3
+    print("fold3 lines size: {}".format(len(lines)))
     caseids = fold3_c
     lines_t = fold3_t
     lines_t2 = fold3_t2
     lines_t3 = fold3_t3
-    lines_ft = fold3_ft
+    #lines_ft = fold3_ft
     
     #set parameters, predicting for the size given by them
     predict_size = maxlen
@@ -350,8 +340,9 @@ def main(argv = None):
         for prefix_size in range(2,maxlen):
             # print(prefix_size)
             print('Prevendo para prefixo: '+str(prefix_size)+'...')
-            for line, caseid, times, times2, times3, ft in zip(lines, caseids, lines_t, lines_t2, lines_t3, lines_ft): 
-                ## Pack the vector (actv, case, time, ets1, ets2, addf) and iterate it
+            for line, caseid, times, times2, times3 in zip(lines, caseids, lines_t, lines_t2, lines_t3): 
+                ## Pack the vector (actv, case, time, ets1, ets2) and iterate it
+                print("lines: {} | caseids: {} | lines_t: {} | lines_t2: {} | lines_t3: {}".format(line, caseid, times, times2, times3))
                 times.append(0)
                 cropped_line = ''.join(line[:prefix_size])
                 cropped_times = times[:prefix_size]
@@ -366,27 +357,70 @@ def main(argv = None):
                 predicted = ''
                 total_predicted_time = 0
                 for i in range(predict_size):
-                    enc = encode(cropped_line, cropped_times, cropped_times3, ft, maxlen, num_add_feats, chars, char_indices, divisor, divisor2)
+                    enc = encode(cropped_line, cropped_times, cropped_times3, "", maxlen, num_add_feats, chars, char_indices, divisor, divisor2)
+                    print("encode:")
+                    print(enc)
                     y = model.predict(enc, verbose=0) # make predictions
+                    
+ 
+                    # padded_data = pd.read_csv(os.getcwd()+"\padded_event_log.csv", sep="|")
+                    # ids_for_test = np.random.choice(padded_data['CaseID'].unique(), size = 24, replace=False)
+                    # d_train = padded_data[~padded_data['CaseID'].isin(ids_for_test)]
+                    # d_train['CompleteTimestamp'] = pd.to_datetime(d_train['CompleteTimestamp'])
+                    # d_train['CompleteTimestamp'] = d_train['CompleteTimestamp'].apply(lambda x: int(x.timestamp()))
+                    # average_event = calc_avg_event(d_train, numerical_feats=['CompleteTimestamp'], categorical_feats=[])
                     
                     ## Insert TimeShap
 
                     ## Validate the input on timeshap
-                    padded_data = pd.read_csv(os.getcwd()+"\padded_event_log.csv", sep="|")
-                    ids_for_test = np.random.choice(padded_data['CaseID'].unique(), size = 24, replace=False)
-                    d_train = padded_data[~padded_data['CaseID'].isin(ids_for_test)]
-                    d_train['CompleteTimestamp'] = pd.to_datetime(d_train['CompleteTimestamp'])
-                    d_train['CompleteTimestamp'] = d_train['CompleteTimestamp'].apply(lambda x: int(x.timestamp()))
+                    #print("lines size: {} | caseids size: {} | t size: {} | t2 size: {} | t3 size: {}".format(len(d_train_lines), len(d_train_caseids), len(d_train_lines_t), len(d_train_lines), len(d_train_lines_t2), len(d_train_lines_t3)))
+                    d_train = pd.DataFrame({'Activity'})
                     average_event = calc_avg_event(d_train, numerical_feats=['CompleteTimestamp'], categorical_feats=[])
+                    print("average event:")
                     print (average_event)
+                    
                     average_sequence = calc_avg_sequence(d_train, numerical_feats=['CompleteTimestamp'], categorical_feats=[], model_features=['CaseID','ActivityID','CompleteTimestamp'], entity_col=['CaseID'])
+                    print("average sequence:")
                     print (average_sequence)
-                    avg_score_over_len = get_avg_score_with_avg_event(d_train, average_event, top=480)
-                    return
-                    #print(average_event)
+
+                    print("model summary")
+                    model.summary()
+
                     # split predictions into seperate activity and time predictions
                     y_char = y[0][0] 
                     y_t = y[1][0][0]
+
+                    ## Local explanation of time prediction
+
+                    model_features = ['CaseID','CompleteTimestamp']
+
+                    plot_feats = {
+                        'CaseID': "Case",
+                        'CompleteTimestamp': "Timestamp",
+                    }
+
+                    #pruning_dict = {'tol': 0.025}
+                    event_dict = {'rs': 42, 'nsamples': 32000}
+                    feature_dict = {'rs': 42, 'nsamples': 32000, 'feature_names': ['CaseID','ActivityID','CompleteTimestamp'], 'plot_features': plot_feats}
+                    cell_dict = {'rs': 42, 'nsamples': 32000, 'top_x_feats': 2, 'top_x_events': 2}
+                    
+                    print ('Predicted time: {}'.format(y_t))
+
+                    data_input = {
+                        'CaseID': [1],
+                        'CompleteTimestamp': [y_t]
+                    }
+
+                    df_input = pd.DataFrame(data_input)
+
+                    print (df_input)
+
+                    pruning_data, event_data, feature_data, cell_level = \
+                    calc_local_report(f=model, data=df_input, pruning_dict=None, event_dict=event_dict, feature_dict=feature_dict, cell_dict=cell_dict, baseline=average_event, model_features=model_features, entity_col='CaseID', entity_uuid='1-322204195', time_col='CompleteTimestamp', verbose=True)
+
+                    local_report(model, df_input, pruning_dict, event_dict, feature_dict, cell_dict=cell_dict, entity_uuid='1-322204195', model_features=['CaseID','ActivityID','CompleteTimestamp'], entity_col='CaseID', baseline=average_event, verbose=True)
+                    return
+
                     prediction = getSymbol(y_char, target_indices_char) # undo one-hot encoding           
                     cropped_line += prediction
                     if y_t<0:
